@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 
-export const db = new Database("sekolah.sqlite");
+export const db = new Database("../sekolah.sqlite");
 
 export default function sekolah(searchQuery: string) {
   const rows = db
