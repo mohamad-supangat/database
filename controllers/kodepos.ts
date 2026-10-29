@@ -1,6 +1,8 @@
 import { Database } from "bun:sqlite";
+import path from "path";
 
-export const db = new Database("../nusa.sqlite");
+const dbPath = path.join(process.cwd(), "nusa.sqlite");
+const db = new Database(dbPath, { readonly: true });
 
 function getKodeposDB(searchQuery: string) {
   const query = `
