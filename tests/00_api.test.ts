@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { fetch } from "bun";
 
-const url = "http://localhost:3000/";
+const url = "https://database-tau-ten.vercel.app/";
 
 describe("REST API Routes Test", () => {
   test("GET /health - Mengembalikan status OK", async () => {
