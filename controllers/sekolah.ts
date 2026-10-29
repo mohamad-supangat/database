@@ -1,8 +1,7 @@
 import { Database } from "bun:sqlite";
 import path from "path";
 
-
-const dbPath = path.join(process.cwd(), "sekolah.sqlite");
+const dbPath = path.resolve(import.meta.dir, "sekolah.sqlite");
 const db = new Database(dbPath, { readonly: true });
 
 export default function sekolah(searchQuery: string) {
