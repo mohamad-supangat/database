@@ -3,7 +3,7 @@ import { Database } from "bun:sqlite";
 // 1. Inisialisasi Database SQLite
 const db = new Database("sekolah.sqlite");
 
-// Jalankan skema tabel
+// Skema Tabel
 db.run(`
   CREATE TABLE IF NOT EXISTS sekolah (
     sekolah_id TEXT PRIMARY KEY,
@@ -28,7 +28,7 @@ db.run(`
   CREATE INDEX IF NOT EXISTS idx_sekolah_nama ON sekolah(nama);
 `);
 
-// Statement prepared query untuk UPSERT (Insert or Replace)
+// Prepared Statement untuk UPSERT
 const insertStmt = db.prepare(`
   INSERT OR REPLACE INTO sekolah (
     sekolah_id, npsn, nama, bentuk_pendidikan, status_sekolah,
@@ -41,7 +41,7 @@ const insertStmt = db.prepare(`
   )
 `);
 
-// Bungkus dalam transaksi agar penyimpanan massal sangat cepat
+// Transaksi Batch Insert
 const saveBatch = db.transaction((listSekolah: any[]) => {
   for (const item of listSekolah) {
     insertStmt.run({
@@ -64,7 +64,7 @@ const saveBatch = db.transaction((listSekolah: any[]) => {
   }
 });
 
-// Fungsi pemanggil API per page
+// Pemanggilan API per Halaman
 async function fetchSekolahPage(page: number, pageSize: number = 48) {
   const response = await fetch(
     "https://sekolah.data.kemendikdasmen.go.id/v1/sekolah-service/sekolah/cari-sekolah",
@@ -97,26 +97,26 @@ async function fetchSekolahPage(page: number, pageSize: number = 48) {
   );
 
   if (!response.ok) {
-    throw new Error(`HTTP Error status: ${response.status}`);
+    throw new Error(`HTTP Error Status: ${response.status}`);
   }
 
   return await response.json();
 }
 
-// Fungsi Delay untuk mencegah pemblokiran IP
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Fungsi Utama Scraping Loop
+// Fungsi Utama Scraper dengan Error Handling per Halaman
 async function runScraper() {
-  const PAGE_SIZE = 100; // Ukuran batch per request (bisa diperbesar jika server mengizinkan)
+  const PAGE_SIZE = 100;
   let currentPage = 0;
   let totalRecords = 0;
   let fetchedRecords = 0;
+  const failedPages: number[] = [];
 
   console.log("🚀 Memulai proses scraping data sekolah...");
 
-  try {
-    do {
+  while (true) {
+    try {
       console.log(`[Page ${currentPage}] Mengambil data...`);
       const result = await fetchSekolahPage(currentPage, PAGE_SIZE);
 
@@ -134,22 +134,42 @@ async function runScraper() {
 
       console.log(
         `✓ [Page ${currentPage}] Berhasil menyimpan ${recordsInPage} data. (` +
-          `Progress: ${fetchedRecords}/${totalRecords})`,
+          `Progress: ~${fetchedRecords}/${totalRecords})`,
       );
 
       currentPage++;
-
-      // Beri jeda 300ms antar request agar ramah terhadap server
       await sleep(300);
-    } while (fetchedRecords < totalRecords);
 
+      // Berhenti jika estimasi jumlah data yang didapat sudah memenuhi total
+      if (fetchedRecords >= totalRecords) {
+        break;
+      }
+    } catch (error) {
+      // Menangkap error khusus di halaman ini, mencatatnya, lalu lanjut ke halaman berikutnya
+      console.error(
+        `⚠️ [Page ${currentPage}] Gagal mengambil/menyimpan data (Dilewati):`,
+        error instanceof Error ? error.message : error,
+      );
+
+      failedPages.push(currentPage);
+
+      // Lewati halaman yang error dan lanjut ke halaman berikutnya
+      currentPage++;
+
+      // Beri jeda lebih lama jika terjadi error untuk recovery koneksi
+      await sleep(1000);
+    }
+  }
+
+  console.log(`\n🎉 Scraping Selesai!`);
+  console.log(`Total data terproses: ~${fetchedRecords} sekolah.`);
+
+  if (failedPages.length > 0) {
     console.log(
-      `\n🎉 Scraping Selesai! Total ${fetchedRecords} sekolah tersimpan di sekolah.sqlite.`,
+      `⚠️ Halaman yang dilewati karena error (${failedPages.length}):`,
+      failedPages.join(", "),
     );
-  } catch (error) {
-    console.error(`❌ Terjadi kesalahan pada page ${currentPage}:`, error);
   }
 }
 
-// Jalankan Scraper
 runScraper();
