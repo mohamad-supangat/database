@@ -6,5 +6,13 @@
   "scripts": {
     "dev": "bun --watch server.ts"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@types/bun": "^1.4.4"
+  },
+  "peerDependencies": {
+    "typescript": "^7.0.2"
+  },
+  "devDependencies": {
+    "cheerio": "^1.2.0"
+  }
 }
