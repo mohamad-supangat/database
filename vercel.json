@@ -2,13 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "bunVersion": "1.4.x",
   "functions": {
-    "server.ts": {
+    "**/*.ts": {
       "includeFiles": "*.sqlite"
     },
-    "api/**/*.ts": {
-      "includeFiles": "*.sqlite"
-    },
-    "controllers/**/*.ts": {
+    "**/*.mjs": {
       "includeFiles": "*.sqlite"
     }
   }
